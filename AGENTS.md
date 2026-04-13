@@ -109,7 +109,9 @@ See `docs/models.md` for full field-level schemas and `docs/AVA_MDP.md` for Ava'
 
 ## Operational Notes
 - The project uses PM2. Check `pm2 list` and `pm2 logs ava-dash-frontend --lines 100 --nostream`.
-- Deploy functions: `./scripts/deploy.sh functions` (requires `firebase login` first).
+- Deploy hosting: `./scripts/deploy.sh hosting`
+- Deploy functions: `./scripts/deploy.sh functions` (run `npm install --prefix functions` first if node_modules is missing)
+- Firebase is authenticated as ava@webfootprint.co.za (owner) — no manual login needed.
 - Never kill or restart the emulator — the user will do it if needed.
 - Emulator backup runs every 2 minutes via `ava-dash-backup` PM2 process.
 - Business logic lives in Cloud Functions, not SvelteKit server routes.
