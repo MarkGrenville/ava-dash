@@ -3,8 +3,35 @@
 	import { cronJobsStore } from '$lib/stores/cronJobs.svelte';
 	import { activityStore } from '$lib/stores/activity.svelte';
 	import { scheduledTasksStore } from '$lib/stores/scheduledTasks.svelte';
+	import { auth, API_BASE } from '$lib/firebase/client';
 	import Card from '$lib/components/Card.svelte';
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
+
+	let tokenRefreshing = $state(false);
+	let refreshedRemaining = $state<number | null>(null);
+
+	async function refreshTokens() {
+		const user = auth.currentUser;
+		if (!user) return;
+		tokenRefreshing = true;
+		try {
+			const token = await user.getIdToken();
+			const res = await fetch(`${API_BASE}/activity?limit=1`, {
+				headers: { Authorization: `Bearer ${token}` }
+			});
+			const json = await res.json();
+			if (json.success && json.data?.length > 0) {
+				const latest = json.data[0];
+				if (latest.tokensRemaining != null) {
+					refreshedRemaining = latest.tokensRemaining;
+				}
+			}
+		} catch (err) {
+			console.error('[dashboard] Token refresh error:', err);
+		} finally {
+			tokenRefreshing = false;
+		}
+	}
 
 	const totalTasks = $derived(
 		projectsStore.projects.reduce((sum, p) => sum + p.totalTasks, 0)
@@ -142,12 +169,23 @@
 	</Card>
 	<Card>
 		{#snippet children()}
-			<div class="text-text-muted text-[10px] font-semibold uppercase tracking-widest mb-1">Tokens Remaining</div>
-			{#if latestRemaining != null}
-				<div class="text-2xl font-bold {latestRemaining < 50000 ? 'text-status-error' : latestRemaining < 200000 ? 'text-status-warning' : 'text-status-success'}">
-					{latestRemaining.toLocaleString()}
+			{@const remaining = refreshedRemaining ?? latestRemaining}
+			<div class="flex items-center justify-between mb-1">
+				<div class="text-text-muted text-[10px] font-semibold uppercase tracking-widest">Tokens Remaining</div>
+				<button
+					onclick={refreshTokens}
+					disabled={tokenRefreshing}
+					class="text-text-muted hover:text-accent-400 transition-colors disabled:opacity-40"
+					title="Refresh token count"
+				>
+					<span class="material-symbols-outlined text-sm {tokenRefreshing ? 'animate-spin' : ''}">refresh</span>
+				</button>
+			</div>
+			{#if remaining != null}
+				<div class="text-2xl font-bold {remaining < 50000 ? 'text-status-error' : remaining < 200000 ? 'text-status-warning' : 'text-status-success'}">
+					{remaining.toLocaleString()}
 				</div>
-				<div class="text-[10px] text-text-muted mt-0.5">last reported</div>
+				<div class="text-[10px] text-text-muted mt-0.5">{refreshedRemaining != null ? 'just refreshed' : 'last reported'}</div>
 			{:else}
 				<div class="text-2xl font-bold text-text-muted">—</div>
 				<div class="text-[10px] text-text-muted mt-0.5">not yet reported</div>
