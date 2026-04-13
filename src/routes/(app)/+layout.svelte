@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { onMount, onDestroy } from 'svelte';
 	import { authStore } from '$lib/stores/auth.svelte';
 	import { projectsStore } from '$lib/stores/projects.svelte';
 	import { cronJobsStore } from '$lib/stores/cronJobs.svelte';
@@ -10,40 +9,28 @@
 	import BottomNav from '$lib/components/BottomNav.svelte';
 
 	let { children } = $props();
+	let subscribed = false;
 
-	onMount(() => {
-		let cancelled = false;
-
-		(async () => {
-			while (authStore.loading && !cancelled) {
-				await new Promise((r) => setTimeout(r, 100));
-			}
-			if (cancelled) return;
-
-			if (!authStore.isAuthenticated) {
-				goto('/login', { replaceState: true });
-				return;
-			}
-
-			const uid = authStore.currentUser!.uid;
-			projectsStore.subscribe(uid);
-			cronJobsStore.subscribe(uid);
-			activityStore.subscribe(uid);
+	$effect(() => {
+		const user = authStore.currentUser;
+		if (user && !subscribed) {
+			subscribed = true;
+			console.log('[layout] Subscribing stores for uid:', user.uid);
+			projectsStore.subscribe(user.uid);
+			cronJobsStore.subscribe(user.uid);
+			activityStore.subscribe(user.uid);
 			scheduledTasksStore.startPolling();
-		})();
+		}
 
-		return () => {
-			cancelled = true;
-			projectsStore.destroy();
-			cronJobsStore.destroy();
-			activityStore.destroy();
-			scheduledTasksStore.stopPolling();
-		};
+		if (!authStore.loading && !user) {
+			console.log('[layout] Not authenticated, redirecting to login');
+			goto('/login', { replaceState: true });
+		}
 	});
 </script>
 
 <TopBar />
-<main class="pb-20 md:pb-6 px-4 pt-4 max-w-5xl mx-auto">
+<main class="pb-20 md:pb-6 px-4 pt-4 max-w-7xl mx-auto">
 	{@render children()}
 </main>
 <BottomNav />

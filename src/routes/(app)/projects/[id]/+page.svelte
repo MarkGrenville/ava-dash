@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { onMount, onDestroy } from 'svelte';
 	import { db } from '$lib/firebase/client';
 	import {
 		doc,
@@ -18,9 +17,6 @@
 	let project = $state<Project | null>(null);
 	let tasks = $state<Task[]>([]);
 	let loading = $state(true);
-
-	let unsubProject: Unsubscribe;
-	let unsubTasks: Unsubscribe;
 
 	const projectId = $derived(page.params.id as string);
 
@@ -61,8 +57,18 @@
 		})
 	);
 
-	onMount(() => {
-		const projectRef = doc(db, 'projects', projectId);
+	$effect(() => {
+		const id = projectId;
+		if (!id) return;
+
+		loading = true;
+		project = null;
+		tasks = [];
+
+		let unsubProject: Unsubscribe | undefined;
+		let unsubTasks: Unsubscribe | undefined;
+
+		const projectRef = doc(db, 'projects', id);
 		unsubProject = onSnapshot(projectRef, (snap) => {
 			if (snap.exists()) {
 				const data = snap.data();
@@ -79,17 +85,22 @@
 					updatedAt: data.updatedAt?.toDate?.().toISOString() || '',
 					completedAt: data.completedAt?.toDate?.().toISOString() || null
 				};
+			} else {
+				project = null;
 			}
+			loading = false;
+		}, (err) => {
+			console.error('[project] Snapshot error:', err);
 			loading = false;
 		});
 
-		const tasksQuery = query(collection(db, 'projects', projectId, 'tasks'), orderBy('order', 'asc'));
+		const tasksQuery = query(collection(db, 'projects', id, 'tasks'), orderBy('order', 'asc'));
 		unsubTasks = onSnapshot(tasksQuery, (snap) => {
 			tasks = snap.docs.map((d) => {
 				const data = d.data();
 				return {
 					id: d.id,
-					projectId,
+					projectId: id,
 					title: data.title,
 					description: data.description,
 					status: data.status,
@@ -104,12 +115,14 @@
 					updatedAt: data.updatedAt?.toDate?.().toISOString() || ''
 				} as Task;
 			});
+		}, (err) => {
+			console.error('[tasks] Snapshot error:', err);
 		});
-	});
 
-	onDestroy(() => {
-		unsubProject?.();
-		unsubTasks?.();
+		return () => {
+			unsubProject?.();
+			unsubTasks?.();
+		};
 	});
 </script>
 
@@ -124,7 +137,6 @@
 
 	<PageHeader title={project.title} subtitle={project.description || undefined} />
 
-	<!-- Project meta -->
 	<div class="flex items-center gap-3 mb-4 flex-wrap">
 		<StatusBadge status={project.status} size="md" />
 		<span class="text-xs text-text-muted">{project.completedTasks}/{project.totalTasks} tasks completed</span>
@@ -133,7 +145,6 @@
 		{/if}
 	</div>
 
-	<!-- Progress bar -->
 	{#if project.totalTasks > 0}
 		<div class="mb-6">
 			<div class="flex items-center justify-between mb-1">
@@ -149,7 +160,6 @@
 		</div>
 	{/if}
 
-	<!-- Currently active task highlight -->
 	{#if activeTask}
 		<Card class="mb-4 border-accent-500/30 bg-accent-500/5">
 			{#snippet children()}
@@ -165,7 +175,6 @@
 		</Card>
 	{/if}
 
-	<!-- Task list -->
 	<section>
 		<h2 class="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">
 			Tasks ({tasks.length})
@@ -179,7 +188,7 @@
 			</Card>
 		{:else}
 			<div class="space-y-1.5">
-				{#each sortedTasks as task, i}
+				{#each sortedTasks as task}
 					<Card>
 						{#snippet children()}
 							<div class="flex items-start gap-3">
@@ -243,7 +252,6 @@
 		{/if}
 	</section>
 
-	<!-- Metadata -->
 	{#if project.metadata && Object.keys(project.metadata).length > 0}
 		<section class="mt-6">
 			<h2 class="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">Metadata</h2>
