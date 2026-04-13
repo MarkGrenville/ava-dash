@@ -271,4 +271,97 @@ router.get('/upcoming', async (req: AuthenticatedRequest, res: Response) => {
 	}
 });
 
+/**
+ * @swagger
+ * /tasks/actionable:
+ *   get:
+ *     summary: Get pending tasks that are ready to act on now
+ *     description: >
+ *       Returns all tasks with status 'pending' across all active projects.
+ *       Does NOT include 'scheduled' tasks (those have a future scheduledFor time
+ *       and haven't been activated yet). Use this endpoint to check if there is
+ *       work for Ava to action — if the list is empty, no Claude invocation is needed.
+ *     tags: [Scheduled Tasks]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: List of actionable (pending) tasks
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     allOf:
+ *                       - $ref: '#/components/schemas/Task'
+ *                       - type: object
+ *                         properties:
+ *                           projectTitle:
+ *                             type: string
+ *                           projectStatus:
+ *                             type: string
+ */
+router.get('/actionable', async (req: AuthenticatedRequest, res: Response) => {
+	try {
+		const maxLimit = Math.min(parseInt(req.query.limit as string || '20', 10) || 20, 100);
+
+		const projectsSnap = await db()
+			.collection('projects')
+			.where('userId', '==', req.userId)
+			.where('status', 'in', ['active', 'pending'])
+			.get();
+
+		const actionable: Record<string, unknown>[] = [];
+
+		for (const projectDoc of projectsSnap.docs) {
+			const tasksSnap = await projectDoc.ref
+				.collection('tasks')
+				.where('status', '==', 'pending')
+				.orderBy('order', 'asc')
+				.limit(maxLimit)
+				.get();
+
+			for (const taskDoc of tasksSnap.docs) {
+				const data = taskDoc.data();
+				actionable.push({
+					id: taskDoc.id,
+					projectId: projectDoc.id,
+					projectTitle: projectDoc.data().title,
+					projectStatus: projectDoc.data().status,
+					title: data.title,
+					description: data.description,
+					status: data.status,
+					order: data.order,
+					dependencies: data.dependencies || [],
+					scheduledFor: toISO(data.scheduledFor),
+					result: data.result || null,
+					errorMessage: data.errorMessage || null,
+					startedAt: toISO(data.startedAt),
+					completedAt: toISO(data.completedAt),
+					createdAt: toISO(data.createdAt),
+					updatedAt: toISO(data.updatedAt),
+				});
+
+				if (actionable.length >= maxLimit) break;
+			}
+			if (actionable.length >= maxLimit) break;
+		}
+
+		console.log(`[scheduledTasks] Found ${actionable.length} actionable tasks for user=${req.userId}`);
+		res.json({ success: true, data: actionable });
+	} catch (err) {
+		console.error('[scheduledTasks] Actionable tasks error:', err);
+		res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: (err as Error).message } });
+	}
+});
+
 export { router as scheduledTasksRouter };
