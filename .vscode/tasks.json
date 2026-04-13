@@ -1,0 +1,75 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Start Frontend",
+			"type": "shell",
+			"command": "pm2 start ecosystem.config.cjs --only ava-dash-frontend",
+			"options": { "cwd": "${workspaceFolder}" },
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "new" }
+		},
+		{
+			"label": "Start Emulators",
+			"type": "shell",
+			"command": "pm2 start ecosystem.config.cjs --only ava-dash-emulators",
+			"options": { "cwd": "${workspaceFolder}" },
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "new" }
+		},
+		{
+			"label": "Start Functions Watch",
+			"type": "shell",
+			"command": "pm2 start ecosystem.config.cjs --only ava-dash-functions-watch",
+			"options": { "cwd": "${workspaceFolder}" },
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "new" }
+		},
+		{
+			"label": "Start Backup",
+			"type": "shell",
+			"command": "pm2 start ecosystem.config.cjs --only ava-dash-backup",
+			"options": { "cwd": "${workspaceFolder}" },
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "new" }
+		},
+		{
+			"label": "Start All",
+			"dependsOn": ["Start Frontend", "Start Emulators", "Start Functions Watch", "Start Backup"],
+			"dependsOrder": "parallel",
+			"problemMatcher": [],
+			"group": { "kind": "build", "isDefault": true }
+		},
+		{
+			"label": "Stop All",
+			"type": "shell",
+			"command": "pm2 delete ava-dash-frontend ava-dash-emulators ava-dash-functions-watch ava-dash-backup 2>/dev/null || true",
+			"options": { "cwd": "${workspaceFolder}" },
+			"problemMatcher": []
+		},
+		{
+			"label": "View Logs",
+			"type": "shell",
+			"command": "pm2 logs --lines 50",
+			"options": { "cwd": "${workspaceFolder}" },
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "dedicated" }
+		},
+		{
+			"label": "Seed Emulator",
+			"type": "shell",
+			"command": "./scripts/seed.sh",
+			"options": { "cwd": "${workspaceFolder}" },
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "shared" }
+		},
+		{
+			"label": "Test API",
+			"type": "shell",
+			"command": "npx tsx scripts/test-api.ts",
+			"options": { "cwd": "${workspaceFolder}" },
+			"problemMatcher": [],
+			"presentation": { "reveal": "always", "panel": "shared" }
+		}
+	]
+}

@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+build/
+.svelte-kit/
+functions/lib/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Firebase
+.firebase/
+.firebase-backup/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+
+# PM2
+.pm2/
+
+# Misc
+*.local
+*.log

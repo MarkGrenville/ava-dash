@@ -1,0 +1,59 @@
+{
+	"id": "ava-dash",
+	"name": "Ava Dashboard",
+	"description": "Task management dashboard for the Ava AI bot — projects, tasks, cron jobs",
+	"focusIdentifier": "ava-dash",
+	"projectPath": "/Users/markgrenville/Projects/ava-dash",
+	"projectBackendPath": "functions",
+	"firebaseProjectId": "ava-dash",
+	"services": [
+		{
+			"name": "Frontend",
+			"port": 7500,
+			"url": "http://localhost:7500",
+			"purpose": "SvelteKit development server"
+		},
+		{
+			"name": "Preview",
+			"port": 7501,
+			"url": "http://localhost:7501",
+			"purpose": "Vite preview server (production build)"
+		},
+		{
+			"name": "Functions Emulator",
+			"port": 7510,
+			"url": "http://localhost:7510",
+			"purpose": "Firebase Cloud Functions emulator"
+		},
+		{
+			"name": "Firestore Emulator",
+			"port": 7511,
+			"url": "http://localhost:7511",
+			"purpose": "Firebase Firestore emulator"
+		},
+		{
+			"name": "Auth Emulator",
+			"port": 7512,
+			"url": "http://localhost:7512",
+			"purpose": "Firebase Authentication emulator"
+		},
+		{
+			"name": "Storage Emulator",
+			"port": 7513,
+			"url": "http://localhost:7513",
+			"purpose": "Firebase Storage emulator"
+		},
+		{
+			"name": "Emulator UI",
+			"port": 7514,
+			"url": "http://localhost:7514",
+			"purpose": "Firebase Emulator Suite UI"
+		},
+		{
+			"name": "Hosting Emulator",
+			"port": 7515,
+			"url": "http://localhost:7515",
+			"purpose": "Firebase Hosting emulator"
+		}
+	]
+}
