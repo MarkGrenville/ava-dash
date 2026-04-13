@@ -238,15 +238,15 @@
 				<h2 class="text-sm font-semibold text-text-secondary uppercase tracking-wider">Cron Jobs</h2>
 				<a href="/cron" class="text-xs text-accent-400 hover:text-accent-500 transition-colors">View all</a>
 			</div>
-			{#if cronJobsStore.cronJobs.length === 0}
+			{#if cronJobsStore.activeCronJobs.length === 0}
 				<Card>
 					{#snippet children()}
-						<p class="text-text-muted text-sm py-4 text-center">No cron jobs registered.</p>
+						<p class="text-text-muted text-sm py-4 text-center">No active cron jobs.</p>
 					{/snippet}
 				</Card>
 			{:else}
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-					{#each cronJobsStore.cronJobs.slice(0, 6) as job}
+					{#each cronJobsStore.activeCronJobs.slice(0, 6) as job}
 						<Card>
 							{#snippet children()}
 								<div class="flex items-start justify-between gap-2">

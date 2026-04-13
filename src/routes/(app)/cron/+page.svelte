@@ -4,6 +4,12 @@
 	import StatusBadge from '$lib/components/StatusBadge.svelte';
 	import PageHeader from '$lib/components/PageHeader.svelte';
 
+	let activeOnly = $state(true);
+
+	const visibleJobs = $derived(
+		activeOnly ? cronJobsStore.activeCronJobs : cronJobsStore.cronJobs
+	);
+
 	function formatDate(iso: string | null): string {
 		if (!iso) return '—';
 		return new Date(iso).toLocaleString('en-ZA', {
@@ -26,21 +32,37 @@
 	}
 </script>
 
-<PageHeader title="Cron Jobs" subtitle="{cronJobsStore.cronJobs.length} scheduled jobs" />
+<PageHeader
+	title="Cron Jobs"
+	subtitle="{cronJobsStore.activeCronJobs.length} active · {cronJobsStore.cronJobs.length} total"
+/>
+
+<!-- Active-only toggle -->
+<div class="flex items-center justify-end mb-4">
+	<button
+		onclick={() => (activeOnly = !activeOnly)}
+		class="flex items-center gap-2 text-xs text-text-secondary hover:text-text-primary transition-colors"
+	>
+		<span class:text-text-muted={!activeOnly}>Active only</span>
+		<div class="relative w-8 h-4 rounded-full transition-colors {activeOnly ? 'bg-accent-500' : 'bg-surface-400'}">
+			<div class="absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all {activeOnly ? 'left-4' : 'left-0.5'}"></div>
+		</div>
+	</button>
+</div>
 
 {#if cronJobsStore.loading}
 	<div class="text-center py-12 text-text-muted text-sm">Loading cron jobs...</div>
-{:else if cronJobsStore.cronJobs.length === 0}
+{:else if visibleJobs.length === 0}
 	<Card>
 		{#snippet children()}
 			<p class="text-text-muted text-sm py-8 text-center">
-				No cron jobs registered. Claude will create them via the API.
+				{activeOnly ? 'No active cron jobs.' : 'No cron jobs registered.'}
 			</p>
 		{/snippet}
 	</Card>
 {:else}
 	<div class="space-y-2">
-		{#each cronJobsStore.cronJobs as job}
+		{#each visibleJobs as job}
 			<Card>
 				{#snippet children()}
 					<div class="flex items-start justify-between gap-3">
