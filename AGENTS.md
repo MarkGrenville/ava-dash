@@ -66,17 +66,50 @@ The key problem this solves: Ava was a black box. Tasks went in, results sometim
 - `users/{uid}` — User profile with admin role
 
 ### Scheduled Tasks
-Tasks can have a `scheduledFor` field (ISO datetime). When set, status is `scheduled`. A cron job calls `POST /tasks/check-schedule` every minute to activate due tasks (→ `pending`). Endpoints: `GET /tasks/due`, `GET /tasks/upcoming`, `POST /tasks/check-schedule`.
+Tasks can have a `scheduledFor` field (ISO datetime). When set, status is `scheduled`. A cron job calls `POST /tasks/check-schedule` every minute to activate due tasks (→ `pending`). Endpoints: `GET /tasks/due`, `GET /tasks/upcoming`, `POST /tasks/check-schedule`, `GET /tasks/actionable` (pending tasks only — used by task watcher).
 
 ### Audit Log
 `POST /activity` lets Ava log actions with source tracking (`cron`, `user_request`, `email`, `api`, `system`, `scheduled`) and token usage (`tokensUsed`, `tokensRemaining`). The dashboard shows a summary with token burn rate.
 
 See `docs/models.md` for full field-level schemas and `docs/AVA_MDP.md` for Ava's behavioral guidelines.
 
+## Ava Behavioral Protocol
+
+### When a task arrives (email, dashboard, or any source):
+
+**Instant tasks** — can be done in one step with no time considerations (e.g. "reply to this email", "look up X", "send Y"):
+- Just do it immediately. No project needed.
+- Log one audit entry to `/activity` when done.
+
+**Complex or multi-step tasks** — requires research, multiple actions, or coordination:
+1. Create a project on the dashboard with ordered tasks.
+2. Always include a final task like "Reply to Mark / send results".
+3. Send Mark the dashboard link: `https://ava-dash.web.app/projects/{projectId}` so he can confirm the plan or add context.
+4. Work through tasks one by one, updating status as you go.
+5. Complete the project when all tasks are done.
+
+**Time-based or scheduled tasks** — anything that shouldn't happen until a future date:
+1. Create a project with the scheduled task using `scheduledFor`.
+2. Send Mark the dashboard link for visibility.
+3. The task watcher activates it automatically at the right time.
+
+**When you're unsure what Mark wants** — forward the email to mark@webfootprint.co.za and create a project task to follow up.
+
+### Dashboard URLs
+- Live dashboard: `https://ava-dash.web.app`
+- Project link: `https://ava-dash.web.app/projects/{projectId}`
+- API base: `https://ava-dash.web.app/api`
+
+### Registered Cron Jobs (LaunchAgent, runs every minute)
+| ID | Name | Script |
+|----|------|--------|
+| `C07Fsa3hmdW2wkxDGis8` | Gmail Inbox Watcher | `~/.claude/scripts/gmail-watcher.sh` |
+| `b6L2wUq4MtfCcNR1NhmA` | Scheduled Task Checker | (integrated into gmail-watcher.sh) |
+| `GnWscbo9WumccVjXvYiD` | Task Watcher | `~/.claude/scripts/task-watcher.py` |
+
 ## Operational Notes
 - The project uses PM2. Check `pm2 list` and `pm2 logs ava-dash-frontend --lines 100 --nostream`.
-- Never deploy — the user deploys manually via `./scripts/deploy.sh`.
-- Never run git commits — the user handles version control.
+- Deploy functions: `./scripts/deploy.sh functions` (requires `firebase login` first).
 - Never kill or restart the emulator — the user will do it if needed.
 - Emulator backup runs every 2 minutes via `ava-dash-backup` PM2 process.
 - Business logic lives in Cloud Functions, not SvelteKit server routes.
